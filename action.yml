@@ -1,0 +1,101 @@
+name: AI PR Review
+description: >
+  AI-powered automated PR review. Provider-agnostic — works with any AI that
+  accepts an API key and model identifier. Posts a structured review comment
+  covering correctness, security, code quality, cross-platform compatibility,
+  and documentation standards.
+
+author: Spyced Concepts Ltd. <https://spycedconcepts.co.uk>
+
+branding:
+  icon: eye
+  color: purple
+
+inputs:
+  ai_api_key:
+    description: API key for your AI provider. Store as a repository secret.
+    required: true
+  ai_model:
+    description: >
+      Model identifier for your AI provider
+      (e.g. claude-sonnet-4-6, gpt-4o, gemini-1.5-pro).
+    required: true
+  pr_number:
+    description: Pull request number to review.
+    required: true
+  pr_title:
+    description: Pull request title.
+    required: true
+  pr_body:
+    description: Pull request description body.
+    required: false
+    default: ""
+  diff_lines:
+    description: Maximum number of diff lines to review. Default 1500.
+    required: false
+    default: "1500"
+  review_criteria:
+    description: >
+      Additional review criteria to append to the standard checklist.
+      Plain text, one criterion per line.
+    required: false
+    default: ""
+  github_token:
+    description: GitHub token for posting the review comment.
+    required: true
+
+outputs:
+  review:
+    description: The full review text posted as a PR comment.
+    value: ${{ steps.review.outputs.review }}
+
+runs:
+  using: composite
+  steps:
+    - name: Capture PR diff
+      id: diff
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        gh pr diff "${{ inputs.pr_number }}" 2>/dev/null \
+          | head -n "${{ inputs.diff_lines }}" > "$RUNNER_TEMP/pr_diff.txt"
+        LINES=$(wc -l < "$RUNNER_TEMP/pr_diff.txt")
+        echo "lines=$LINES" >> "$GITHUB_OUTPUT"
+
+    - name: Run AI review
+      id: review
+      shell: bash
+      env:
+        AI_API_KEY:       ${{ inputs.ai_api_key }}
+        AI_MODEL:         ${{ inputs.ai_model }}
+        PR_TITLE:         ${{ inputs.pr_title }}
+        PR_BODY:          ${{ inputs.pr_body }}
+        PR_NUMBER:        ${{ inputs.pr_number }}
+        REVIEW_CRITERIA:  ${{ inputs.review_criteria }}
+        DIFF_LINES_LIMIT: ${{ inputs.diff_lines }}
+      run: python3 "${{ github.action_path }}/scripts/review.py"
+
+    - name: Post review comment
+      shell: bash
+      env:
+        GH_TOKEN:   ${{ inputs.github_token }}
+        REVIEW:     ${{ steps.review.outputs.review }}
+        DIFF_LINES: ${{ steps.diff.outputs.lines }}
+        DIFF_LIMIT: ${{ inputs.diff_lines }}
+      run: |
+        NOTE=""
+        if [ "${DIFF_LINES:-0}" -ge "${DIFF_LIMIT:-1500}" ]; then
+          NOTE="> Diff was large — review based on first ${DIFF_LIMIT} lines only."
+        fi
+        {
+          echo "## AI Code Review"
+          echo ""
+          [ -n "$NOTE" ] && printf '%s\n\n' "$NOTE"
+          printf '%s' "$REVIEW"
+          echo ""
+          echo ""
+          echo "---"
+          echo "*Automated review. Maintainer approval required.*"
+        } > "$RUNNER_TEMP/review_body.md"
+        gh pr comment "${{ inputs.pr_number }}" --body-file "$RUNNER_TEMP/review_body.md"

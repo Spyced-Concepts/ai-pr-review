@@ -1,0 +1,19 @@
+name: Test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, functional-test, "release/**"]
+
+jobs:
+  syntax-check:
+    name: Python syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check review.py syntax
+        run: python3 -c "import ast; ast.parse(open('scripts/review.py').read()); print('OK')"
+      - name: Check action.yml is valid YAML
+        run: python3 -c "import yaml; yaml.safe_load(open('action.yml')); print('OK')"
+        # yaml module required: pip install pyyaml
