@@ -31,10 +31,10 @@
 
 ## Prerequisites checklist
 
-- [ ] `Spyced-Concepts/corvex-strike` has `AI_API_KEY` secret configured
-- [ ] `Spyced-Concepts/corvex-strike` has `AI_MODEL` variable configured
-- [ ] `Spyced-Concepts/corvex-strike` has `.github/workflows/ai-review.yml` pointing at `functional-test`
-- [ ] Tester has access to create PRs and observe workflow runs in corvex-strike
+- [x] `Spyced-Concepts/corvex-strike` has `AI_API_KEY` secret configured ✓ 2026-05-09
+- [x] `Spyced-Concepts/corvex-strike` `AI_MODEL` updated to `claude-sonnet-4-6` for UAT ✓ 2026-05-09 — **revert to `claude-haiku-4-5-20251001` after UAT completes**
+- [x] `Spyced-Concepts/corvex-strike` has `.github/workflows/ai-review.yml` pointing at `functional-test` ✓ PR #3
+- [x] Tester has access to create PRs and observe workflow runs in corvex-strike
 
 ---
 
@@ -42,37 +42,38 @@
 
 ### UAT-001 — Valid diff, Anthropic provider
 
-**Setup:** Open a PR in corvex-strike with at least one changed file and a clean diff.
-
-**Expected:** Workflow completes. Review comment posted starting with `## AI Code Review`, ending with a verdict.
+**Setup:** corvex-strike PR #3 — migration from inline script to action.
 
 | Check | Result | Notes |
 |---|---|---|
-| Workflow run completes without error | | |
-| Review comment posted on PR | | |
-| Comment contains `## AI Code Review` header | | |
-| Comment ends with one of the three verdicts | | |
-| `*Automated review. Maintainer approval required.*` footer present | | |
+| Workflow run completes without error | ✅ | 16 seconds |
+| Review comment posted on PR | ✅ | Posted by github-actions[bot] |
+| Comment contains `## AI Code Review` header | ✅ | No vendor branding |
+| Comment ends with one of the three verdicts | ✅ | APPROVE WITH NOTES |
+| `*Automated review. Maintainer approval required.*` footer present | ✅ | |
 
-**Result:**
-**Notes:**
+**Result:** ✅ Pass
+**Notes:** Review content was high quality — correctly identified retry logic gap, truncation behaviour, and checkout step intent. No false positives.
 
 ---
 
 ### UAT-001c — Valid diff, GitHub Models (zero cost)
 
-**Setup:** Change workflow to use `ai_api_key: ${{ secrets.GITHUB_TOKEN }}`, `ai_provider: openai`, `ai_base_url: https://models.inference.ai.azure.com`, `ai_model: gpt-4o`. No extra secret needed.
+**Setup:** corvex-strike PR #3 — `ai_provider: github-models`, `ai_api_key: ${{ secrets.GITHUB_TOKEN }}`, `ai_model: gpt-4o`. No external API key.
 
-**Expected:** Review comment posted using the GitHub-provided token.
+**Bugs found and fixed during this scenario:**
+- BUG-001: `models: read` permission required in workflow permissions block — fixed in `setup-github-models.md`
+- BUG-002: GitHub Models uses `/chat/completions` not `/v1/chat/completions` — fixed by creating dedicated `github-models` adapter
+- BUG-003: `importlib.import_module("adapters.github-models")` fails (hyphen invalid in Python module names) — fixed by normalising with `.replace("-", "_")` in `review.py`
 
 | Check | Result | Notes |
 |---|---|---|
-| Workflow run completes without error | | |
-| Review comment posted on PR | | |
-| No external API key used | | |
+| Workflow run completes without error | ✅ | After 3 bug fixes; run 25609481561 |
+| Review comment posted on PR | ✅ | Posted by github-actions[bot] |
+| No external API key used | ✅ | GITHUB_TOKEN only |
 
-**Result:**
-**Notes:**
+**Result:** ✅ Pass (3 bugs found and fixed — all corrected in UAT branch)
+**Notes:** Sensitive data scan ran correctly as criterion 1. GPT-4o via GitHub Models produced a well-structured review. Header `## AI Code Review` — no vendor branding.
 
 ---
 
