@@ -211,12 +211,37 @@
 
 ---
 
+## Post-run cleanup checklist
+
+**Test repo (corvex-strike workflow) — final state:**
+- [x] UAT-001c: `ai_provider: github-models` → reverted to `anthropic` ✓
+- [x] UAT-002: `diff_lines: "10"` → removed ✓
+- [x] UAT-003: `ai_api_key: ""` → reverted to `${{ secrets.AI_API_KEY }}` ✓
+- [x] UAT-004: `ai_model: ""` → reverted to `${{ vars.AI_MODEL }}` ✓
+- [x] UAT-005: invalid inline key → reverted to `${{ secrets.AI_API_KEY }}` ✓
+- [x] UAT-006: `ai_provider: notarealai` → reverted to `anthropic` ✓
+- [ ] UAT-007–010 cleanup: pending — scenarios not yet run
+- [ ] Final workflow action ref: change from `uat/v0.2.0-alpha-macbook` → `functional-test` once UAT complete
+- [ ] `AI_MODEL` variable in corvex-strike: revert to `claude-haiku-4-5-20251001` (set to `claude-sonnet-4-6` for UAT)
+
+**Test PRs:**
+- [ ] corvex-strike PR #3: close or merge when corvex-strike UAT is separately approved
+
+**UAT branch:**
+- [ ] All scenario results recorded
+- [ ] Result summary updated
+- [ ] Sign-off completed
+
+---
+
 ## Sign-off
 
 | Field | Value |
 |---|---|
 | Tester | Stu Last |
 | Date | 2026-05-09 |
-| Overall result | |
-| Ready to merge to functional-test | |
+| Overall result | In progress |
+| Defects raised | BUG-001 (models:read permission), BUG-002 (GitHub Models endpoint path), BUG-003 (hyphen in module name) — all fixed during UAT |
+| Post-run cleanup complete | No — in progress |
+| Ready to merge to functional-test | No — pending UAT-007 through UAT-010 |
 | Notes / defects raised | |
