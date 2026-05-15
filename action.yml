@@ -216,7 +216,7 @@ runs:
         # Alternation order is intentional: longer strings must precede shorter ones so
         # "APPROVE WITH NOTES" is not partially matched as "APPROVE".
         VERDICT=$(printf '%s' "$REVIEW" \
-          | grep -oE '\*\*AI Recommendation: (APPROVE WITH NOTES|REQUEST CHANGES|APPROVE)\*\*' \
+          | grep -oE '\*\*AI Recommendation: (APPROVE WITH NOTES|REQUEST CHANGES|APPROVE)\*\*' 2>/dev/null \
           | sed 's/\*\*AI Recommendation: //;s/\*\*$//' \
           | tail -1 || echo "")
         if [ -z "$VERDICT" ]; then
