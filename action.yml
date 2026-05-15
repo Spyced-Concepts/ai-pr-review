@@ -74,6 +74,8 @@ inputs:
       Whether to include passing criteria (no issues found) in the review output.
       Default true. Set to false to show only criteria with findings, keeping
       the review concise for large PRs.
+      Accepted values: true/1/yes or false/0/no. Any other value triggers a
+      workflow warning and defaults to true.
     required: false
     default: "true"
 
