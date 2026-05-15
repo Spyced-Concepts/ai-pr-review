@@ -218,7 +218,7 @@ runs:
         VERDICT=$(printf '%s' "$REVIEW" \
           | grep -oE '\*\*AI Recommendation: (APPROVE WITH NOTES|REQUEST CHANGES|APPROVE)\*\*' \
           | sed 's/\*\*AI Recommendation: //;s/\*\*$//' \
-          | tail -1 || true)
+          | tail -1 || echo "")
         if [ -z "$VERDICT" ]; then
           echo "::error::Could not extract verdict from review output — expected one of: APPROVE, APPROVE WITH NOTES, REQUEST CHANGES"
           exit 1
