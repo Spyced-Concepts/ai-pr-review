@@ -46,7 +46,7 @@ Feature: Draft pull request review control
   Scenario: PR converted from draft to ready is reviewed when review_drafts is false
     Given the pull request was a draft and has been marked ready for review
     And the review_drafts input is set to "false"
-    When the pull request workflow triggers on the reopened event
+    When the pull request workflow triggers on the ready_for_review event
     Then the workflow completes without error
     And a review comment is posted on the pull request
 
