@@ -125,4 +125,4 @@ runs:
           echo "---"
           echo "*Automated review. Maintainer approval required.*"
         } > "$RUNNER_TEMP/review_body.md"
-        gh pr comment "${{ inputs.pr_number }}" --body-file "$RUNNER_TEMP/review_body.md"
+        gh pr comment "${{ inputs.pr_number }}" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/review_body.md"
