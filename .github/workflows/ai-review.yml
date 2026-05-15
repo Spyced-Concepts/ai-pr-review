@@ -1,0 +1,34 @@
+# ReviewSentry reviews its own pull requests.
+# Uses GitHub Models (GITHUB_TOKEN) — zero cost, no extra secrets required.
+# References functional-test directly — always uses the current stable version.
+# No manual pin updates needed. SHA pinning is for third-party consumers
+# protecting against supply chain attacks; not applicable for a repo
+# reviewing its own code with its own action.
+
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: reviewsentry-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pull-requests: write
+      models: read
+    steps:
+      - uses: Spyced-Concepts/ReviewSentry@functional-test
+        with:
+          ai_api_key:   ${{ secrets.GITHUB_TOKEN }}
+          ai_model:     gpt-4o
+          ai_provider:  github-models
+          pr_number:    ${{ github.event.pull_request.number }}
+          pr_title:     ${{ github.event.pull_request.title }}
+          pr_body:      ${{ github.event.pull_request.body }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
