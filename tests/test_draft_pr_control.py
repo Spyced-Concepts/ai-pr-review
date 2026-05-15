@@ -8,7 +8,7 @@ environment and are skipped without GITHUB_ACTIONS set.
 
 import os
 import pytest
-from pytest_bdd import scenarios, given, then, parsers
+from pytest_bdd import scenarios, given, when, then, parsers
 
 scenarios("draft_pr_control.feature")
 
@@ -61,6 +61,11 @@ def review_drafts_set(value, live_env):
     pass
 
 
+@given('the review_drafts input is set to ""')
+def review_drafts_set_empty(live_env):
+    pass
+
+
 @given(parsers.parse('the fail_on input is set to "{value}"'))
 def fail_on_set(value, live_env):
     pass
@@ -78,7 +83,7 @@ def readme_examined():
 
 # ── When steps — live env required ───────────────────────────────────────────
 
-@given("the pull request workflow triggers on the reopened event")
+@when("the pull request workflow triggers on the reopened event")
 def workflow_triggers_reopened(live_env):
     pass
 

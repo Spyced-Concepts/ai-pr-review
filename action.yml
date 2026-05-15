@@ -116,6 +116,7 @@ runs:
         IS_DRAFT:      ${{ github.event.pull_request.draft }}
         REVIEW_DRAFTS: ${{ inputs.review_drafts }}
       run: |
+        set -euo pipefail
         _raw=$(printf '%s' "$REVIEW_DRAFTS" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
         case "$_raw" in
           true|1|yes)  _review_drafts=true ;;
