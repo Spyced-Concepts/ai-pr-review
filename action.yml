@@ -62,6 +62,13 @@ inputs:
   github_token:
     description: GitHub token for posting the review comment.
     required: true
+  show_passing_criteria:
+    description: >
+      Whether to include passing criteria (no issues found) in the review output.
+      Default true. Set to false to show only criteria with findings, keeping
+      the review concise for large PRs.
+    required: false
+    default: "true"
 
 outputs:
   review:
@@ -98,9 +105,10 @@ runs:
         PR_TITLE:         ${{ inputs.pr_title }}
         PR_BODY:          ${{ inputs.pr_body }}
         PR_NUMBER:        ${{ inputs.pr_number }}
-        REVIEW_CRITERIA:  ${{ inputs.review_criteria }}
-        CUSTOM_RULES:     ${{ inputs.custom_rules }}
-        DIFF_LINES_LIMIT: ${{ inputs.diff_lines }}
+        REVIEW_CRITERIA:       ${{ inputs.review_criteria }}
+        CUSTOM_RULES:          ${{ inputs.custom_rules }}
+        DIFF_LINES_LIMIT:      ${{ inputs.diff_lines }}
+        SHOW_PASSING_CRITERIA: ${{ inputs.show_passing_criteria }}
       run: python3 "${{ github.action_path }}/scripts/review.py"
 
     - name: Post review comment

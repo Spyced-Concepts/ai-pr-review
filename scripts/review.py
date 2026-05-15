@@ -12,8 +12,9 @@ Environment variables (set by action.yml):
     PR_TITLE         — pull request title
     PR_BODY          — pull request description (may be empty)
     PR_NUMBER        — pull request number
-    REVIEW_CRITERIA  — additional criteria lines (optional)
-    DIFF_LINES_LIMIT — max lines captured (for truncation note)
+    REVIEW_CRITERIA       — additional criteria lines (optional)
+    SHOW_PASSING_CRITERIA — include passing criteria in output (default: true)
+    DIFF_LINES_LIMIT      — max lines captured (for truncation note)
 """
 
 import importlib
@@ -29,8 +30,9 @@ PROVIDER  = os.environ.get("AI_PROVIDER", "").strip().lower()
 BASE_URL  = os.environ.get("AI_BASE_URL", "").strip()
 PR_TITLE  = os.environ.get("PR_TITLE", "")
 PR_BODY   = os.environ.get("PR_BODY", "")
-PR_NUM    = os.environ.get("PR_NUMBER", "")
-EXTRA     = os.environ.get("REVIEW_CRITERIA", "")
+PR_NUM         = os.environ.get("PR_NUMBER", "")
+EXTRA          = os.environ.get("REVIEW_CRITERIA", "")
+SHOW_PASSING   = os.environ.get("SHOW_PASSING_CRITERIA", "true").strip().lower() != "false"
 
 SUPPORTED_PROVIDERS = {"anthropic", "openai", "gemini", "github-models"}
 
@@ -112,7 +114,14 @@ USER = (
     f"{diff_block}\n```\n\n"
     "Review against these criteria:\n"
     + "\n".join(criteria)
-    + "\n\nEnd with exactly one of:\nAPPROVE\nAPPROVE WITH NOTES\nREQUEST CHANGES"
+    + "\n\n"
+    "Format your response as follows:\n"
+    "- Begin each criterion section header with ✅ (no issues found) or ⚠️ (issues present).\n"
+    "- Prefix each individual finding with \U0001f534 (Critical), \U0001f7e0 (High), "
+    "or \U0001f7e1 (Moderate/Low) based on severity.\n"
+    + ("- Omit criterion sections where no issues were found — show only ⚠️ sections.\n"
+       if not SHOW_PASSING else "")
+    + "\nEnd with exactly one of:\nAPPROVE\nAPPROVE WITH NOTES\nREQUEST CHANGES"
 )
 
 # ── Dispatch to adapter ───────────────────────────────────────────────────────
