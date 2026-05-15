@@ -66,6 +66,15 @@ inputs:
       Example: "TypeScript/React project. No class components. Tailwind CSS only."
     required: false
     default: ""
+  review_drafts:
+    description: >
+      Whether to review draft pull requests. Default true — reviews fire on
+      drafts by default. Set to false to skip review until the PR is marked
+      ready for review.
+      Accepted values: true/1/yes or false/0/no. Any other value triggers a
+      workflow warning and defaults to true.
+    required: false
+    default: "true"
   github_token:
     description: GitHub token for posting the review comment.
     required: true
@@ -101,6 +110,29 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Check draft PR policy
+      shell: bash
+      env:
+        IS_DRAFT:      ${{ github.event.pull_request.draft }}
+        REVIEW_DRAFTS: ${{ inputs.review_drafts }}
+      run: |
+        _raw=$(printf '%s' "$REVIEW_DRAFTS" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+        case "$_raw" in
+          true|1|yes)  _review_drafts=true ;;
+          false|0|no)  _review_drafts=false ;;
+          *)
+            echo "::warning::review_drafts has unrecognised value '${REVIEW_DRAFTS}' — accepted values: true/1/yes or false/0/no — defaulting to true"
+            _review_drafts=true ;;
+        esac
+        if [ "$_review_drafts" = "false" ]; then
+          # Default to reviewing when draft status is unavailable (fail-safe)
+          _is_draft="${IS_DRAFT:-false}"
+          if [ "$_is_draft" = "true" ]; then
+            echo "Skipping review — pull request is a draft"
+            exit 0
+          fi
+        fi
+
     - name: Fetch reviewsentry.yml config
       shell: bash
       env:
