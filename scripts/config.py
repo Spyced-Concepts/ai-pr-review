@@ -41,6 +41,7 @@ ALLOWED_KEYS = ALL_CRITERIA | {"acknowledge_disabled_core", "custom"}
 
 # Hard cap on config file size — prevents oversized payloads.
 MAX_LINES = 100
+MAX_BYTES = 10_000  # 10 KB — prevents oversized payloads regardless of line length
 MAX_CUSTOM_CRITERIA = 20
 MAX_CRITERION_LENGTH = 500
 
@@ -110,6 +111,13 @@ def load():
     if not content:
         return {}, [], []
 
+    if len(content.encode("utf-8")) > MAX_BYTES:
+        print(
+            f"::error::reviewsentry.yml exceeds {MAX_BYTES} byte limit "
+            f"({len(content.encode('utf-8'))} bytes). Reduce file size."
+        )
+        sys.exit(1)
+
     try:
         data = _parse(content)
     except ValueError as e:
@@ -129,9 +137,11 @@ def load():
     if disabled_core:
         if not data.get("acknowledge_disabled_core"):
             warnings.append(
-                f"reviewsentry.yml disables core criteria {disabled_core} without "
-                f"'acknowledge_disabled_core: true' — these criteria will still run. "
-                f"Add 'acknowledge_disabled_core: true' to explicitly suppress them."
+                f"⚠️ reviewsentry.yml attempted to disable core criteria "
+                f"{[k.replace('_', ' ') for k in disabled_core]} but "
+                f"'acknowledge_disabled_core: true' was not set — "
+                f"these criteria are still active. Add "
+                f"'acknowledge_disabled_core: true' to suppress them explicitly."
             )
             for k in disabled_core:
                 data.pop(k)
@@ -155,6 +165,13 @@ def load():
                 f"only the first {MAX_CUSTOM_CRITERIA} will be used."
             )
             raw = raw[:MAX_CUSTOM_CRITERIA]
-        custom_criteria = [c[:MAX_CRITERION_LENGTH] for c in raw]
+        for c in raw:
+            if len(c) > MAX_CRITERION_LENGTH:
+                print(
+                    f"::warning::reviewsentry.yml custom criterion exceeds "
+                    f"{MAX_CRITERION_LENGTH} characters and will be skipped: "
+                    f"'{c[:60]}...'"
+                )
+        custom_criteria = [c for c in raw if len(c) <= MAX_CRITERION_LENGTH]
 
     return overrides, custom_criteria, warnings

@@ -85,8 +85,23 @@ runs:
         REPO:     ${{ github.repository }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        CONFIG=$(gh api "repos/$REPO/contents/.github/reviewsentry.yml?ref=$HEAD_SHA" \
-          --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || true)
+        GH_ERR=$(mktemp)
+        ENCODED=$(gh api "repos/$REPO/contents/.github/reviewsentry.yml?ref=$HEAD_SHA" \
+          --jq '.content' 2>"$GH_ERR" || true)
+        if [ -n "$ENCODED" ]; then
+          CONFIG=$(printf '%s' "$ENCODED" | base64 -d 2>/dev/null || true)
+        else
+          ERR=$(cat "$GH_ERR" 2>/dev/null || true)
+          if echo "$ERR" | grep -qi "not found\|404\|No such file"; then
+            CONFIG=""  # File absent — expected, use defaults silently
+          elif [ -n "$ERR" ]; then
+            echo "::warning::Could not fetch .github/reviewsentry.yml: $ERR — using defaults"
+            CONFIG=""
+          else
+            CONFIG=""
+          fi
+        fi
+        rm -f "$GH_ERR"
         {
           echo "REVIEWSENTRY_CONFIG<<RSEOF"
           printf '%s' "${CONFIG:-}"
