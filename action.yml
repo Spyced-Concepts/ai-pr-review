@@ -193,7 +193,7 @@ runs:
           echo ""
           echo ""
           echo "---"
-          echo "*Automated review. Maintainer approval required.*"
+          echo "*AI-generated advisory review. All verdicts are recommendations only — the final merge decision rests with the human maintainer.*"
         } > "$RUNNER_TEMP/review_body.md"
         gh pr comment "${{ inputs.pr_number }}" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/review_body.md"
 

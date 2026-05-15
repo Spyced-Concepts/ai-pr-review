@@ -169,7 +169,11 @@ USER = (
     "or \U0001f7e1 (Moderate/Low) based on severity.\n"
     + ("- Omit criterion sections where no issues were found — show only ⚠️ sections.\n"
        if not SHOW_PASSING else "")
-    + "\nEnd with exactly one of:\nAPPROVE\nAPPROVE WITH NOTES\nREQUEST CHANGES"
+    + "\nClose your review with exactly one of the following verdict lines — include the emoji and bold text exactly as shown:\n\n"
+    "✅ **AI Recommendation: APPROVE**\n"
+    "📝 **AI Recommendation: APPROVE WITH NOTES**\n"
+    "❌ **AI Recommendation: REQUEST CHANGES**\n\n"
+    "The verdict is your advisory recommendation only. The final merge decision rests with the human maintainer."
 )
 
 # ── Dispatch to adapter ───────────────────────────────────────────────────────
