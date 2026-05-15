@@ -49,7 +49,7 @@ Every review starts with a sensitive data disclosure scan — catching credentia
 | Gemini | `gemini` | `${{ secrets.AI_API_KEY }}` | e.g. `gemini-2.0-flash` | not needed | standard |
 | Ollama | `openai` | any value | e.g. `qwen2.5-coder` | your Ollama host | standard |
 
-> **Standard permissions:** `pull-requests: write` and `contents: read`. GitHub Models additionally requires `models: read`.
+> **Standard permissions:** `pull-requests: write`. GitHub Models additionally requires `models: read`.
 >
 > **Secret and variable names are yours to choose.** The names `AI_API_KEY` and `AI_MODEL` used throughout this documentation are examples only. Store your key under any name you like and reference it with `${{ secrets.YOUR_CHOSEN_NAME }}`. The action only reads what you pass to its inputs — it has no dependency on specific environment variable names.
 
@@ -99,16 +99,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: reviewsentry-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pull-requests: write
-      contents: read
       # models: read   # add this line if using github-models
     steps:
-      - uses: actions/checkout@v4
-      - uses: Spyced-Concepts/ReviewSentry@<commit-sha>  # see Releases for latest, e.g. v0.3.2-beta
+      - uses: Spyced-Concepts/ReviewSentry@<commit-sha>  # see Releases for latest, e.g. v0.3.3-beta
         with:
           ai_api_key:   ${{ secrets.YOUR_API_KEY }}
           ai_model:     your-model-identifier
@@ -123,11 +126,11 @@ See the [setup guides](docs/) for provider-specific instructions and model lists
 
 ### Version pinning — SHA only
 
-**SHA pinning is the only supported pattern.** Tags are mutable; floating tags (`@v0`, `@v1`) and version tags (`@v0.3.2-beta`) can all be rewritten by the maintainer or anyone who gains access to the repository, and consumers' next workflow run would silently execute the new code with their secrets. Pinning to a full commit SHA gives cryptographic immutability — the exact code you reviewed is the exact code that will run.
+**SHA pinning is the only supported pattern.** Tags are mutable; floating tags (`@v0`, `@v1`) and version tags (`@v0.3.3-beta`) can all be rewritten by the maintainer or anyone who gains access to the repository, and consumers' next workflow run would silently execute the new code with their secrets. Pinning to a full commit SHA gives cryptographic immutability — the exact code you reviewed is the exact code that will run.
 
 ```yaml
 # Recommended (the only supported pattern)
-- uses: Spyced-Concepts/ReviewSentry@<full-40-char-sha>  # v0.3.2-beta
+- uses: Spyced-Concepts/ReviewSentry@<full-40-char-sha>  # v0.3.3-beta
 ```
 
 The trailing version comment is human metadata and is read by Dependabot, which can open auto-update PRs when newer releases ship.
@@ -152,6 +155,9 @@ The `@v0` floating tag was removed on 2026-05-14. See the [CHANGELOG](CHANGELOG.
 | `diff_lines` | | `1500` | Max diff lines to send for review. If the diff exceeds this limit it is truncated and the review comment includes a visible warning: `> Diff was large — review based on first N lines only.` The action never fails due to diff size — it always posts a review, with the truncation note prepended when applicable. Reduce this value if you hit AI provider token limits; increase it for large refactors. |
 | `review_criteria` | | `""` | Additional review criteria, one per line |
 | `custom_rules` | | `""` | Custom sensitive data scan patterns, one per line |
+| `show_passing_criteria` | | `true` | Default: `true`. Whether to include passing criteria (no issues found) in the review output. Set to `false` to show only criteria with findings, keeping reviews concise on large PRs. Accepted values: `true`/`1`/`yes` or `false`/`0`/`no`. Any other value triggers a workflow warning and defaults to `true`. |
+| `fail_on` | | `never` | Default: `never`. When to fail the workflow based on the AI verdict. Set to `request_changes` to exit non-zero when the verdict is REQUEST CHANGES, blocking PR merges via required status checks. Accepted values: `never`, `request_changes`. Any other value triggers a workflow warning and defaults to `never`. |
+| `review_drafts` | | `true` | Default: `true`. Whether to review draft pull requests — drafts are reviewed by default. Set to `false` to skip review until the PR is marked ready for review. Accepted values: `true`/`1`/`yes` or `false`/`0`/`no`. Any other value triggers a workflow warning and defaults to `true`. |
 | `github_token` | ✓ | — | GitHub token for posting the review comment |
 
 ## Outputs
@@ -159,6 +165,39 @@ The `@v0` floating tag was removed on 2026-05-14. See the [CHANGELOG](CHANGELOG.
 | Output | Description |
 |---|---|
 | `review` | The full review text posted as a PR comment |
+| `verdict` | The AI verdict — one of `APPROVE`, `APPROVE WITH NOTES`, or `REQUEST CHANGES`. Empty string if the verdict could not be extracted (workflow warning emitted). |
+
+---
+
+## Recommended workflow
+
+ReviewSentry works best when it acts as a first-pass reviewer that your team builds on, not a gate that replaces human judgement.
+
+**1. Open your PR as a draft**
+
+Raise the pull request as a draft. ReviewSentry reviews it immediately — any issues flagged before a human even looks at it.
+
+**2. Address the review findings**
+
+For each finding in the AI review comment:
+- **Fix it** — commit the fix to the same branch; ReviewSentry re-reviews automatically.
+- **Explain it** — if the finding is a false positive or an intentional choice, leave a short comment on the PR explaining why. This creates a record for the human reviewer.
+
+**3. Mark the PR ready for review**
+
+Once you are satisfied with the AI review findings, mark the PR ready for review. Push a final trivial commit if you want to trigger one last ReviewSentry run at this point (see [KI-004](KNOWN_ISSUES.md#ki-004) — the ready-for-review event does not currently re-trigger the check automatically).
+
+**4. Confirm all checks are green**
+
+Check that all required status checks pass and that the AI review verdict is `APPROVE` or `APPROVE WITH NOTES`. A verdict of `REQUEST CHANGES` with unresolved findings warrants a second look before requesting a human reviewer.
+
+**5. Request a peer review**
+
+Assign a human reviewer. Share the AI review comment as context — it gives the reviewer a structured starting point and surfaces any issues you've already addressed or explained.
+
+**6. Merge**
+
+The human reviewer merges when they are satisfied with both the code and the AI review. The AI verdict is advisory — the final merge decision always rests with the human maintainer.
 
 ---
 
