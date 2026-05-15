@@ -77,6 +77,15 @@ inputs:
       Any other value triggers a workflow warning and defaults to never.
     required: false
     default: "never"
+  show_passing_criteria:
+    description: >
+      Whether to include passing criteria (no issues found) in the review output.
+      Default true. Set to false to show only criteria with findings, keeping
+      the review concise for large PRs.
+      Accepted values: true/1/yes or false/0/no. Any other value triggers a
+      workflow warning and defaults to true.
+    required: false
+    default: "true"
 
 outputs:
   review:
@@ -156,11 +165,12 @@ runs:
         PR_TITLE:         ${{ inputs.pr_title }}
         PR_BODY:          ${{ inputs.pr_body }}
         PR_NUMBER:        ${{ inputs.pr_number }}
-        REVIEW_CRITERIA:    ${{ inputs.review_criteria }}
-        CUSTOM_RULES:       ${{ inputs.custom_rules }}
-        DIFF_LINES_LIMIT:   ${{ inputs.diff_lines }}
-        SYSTEM_CONTEXT:     ${{ inputs.system_context }}
-        REVIEWSENTRY_CONFIG: ${{ env.REVIEWSENTRY_CONFIG }}
+        REVIEW_CRITERIA:       ${{ inputs.review_criteria }}
+        CUSTOM_RULES:          ${{ inputs.custom_rules }}
+        DIFF_LINES_LIMIT:      ${{ inputs.diff_lines }}
+        SYSTEM_CONTEXT:        ${{ inputs.system_context }}
+        REVIEWSENTRY_CONFIG:   ${{ env.REVIEWSENTRY_CONFIG }}
+        SHOW_PASSING_CRITERIA: ${{ inputs.show_passing_criteria }}
       run: python3 "${{ github.action_path }}/scripts/review.py"
 
     - name: Post review comment
@@ -183,7 +193,7 @@ runs:
           echo ""
           echo ""
           echo "---"
-          echo "*Automated review. Maintainer approval required.*"
+          echo "*AI-generated advisory review. All verdicts are recommendations only — the final merge decision rests with the human maintainer.*"
         } > "$RUNNER_TEMP/review_body.md"
         gh pr comment "${{ inputs.pr_number }}" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/review_body.md"
 
@@ -199,6 +209,10 @@ runs:
           *) echo "::warning::fail_on has unrecognised value '${FAIL_ON}' — accepted values: never, request_changes — defaulting to never"
              FAIL_ON="never" ;;
         esac
+        # Extraction failure always exits 0 with a warning — an incomplete review is not
+        # a signal that code should not be merged. fail_on only controls whether a valid
+        # REQUEST CHANGES verdict fails the workflow.
+        #
         # The grep pattern matches the bold verdict format specified in scripts/review.py.
         # Alternation order is intentional: longer strings must precede shorter ones so
         # "APPROVE WITH NOTES" is not partially matched as "APPROVE".
