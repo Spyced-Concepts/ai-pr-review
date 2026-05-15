@@ -72,8 +72,9 @@ inputs:
   fail_on:
     description: >
       When to fail the workflow based on the AI verdict.
-      Options: never (default) — informational only, no CI failure;
+      Accepted values: never (default) — informational only, no CI failure;
       request_changes — exit non-zero when the AI verdict is REQUEST CHANGES.
+      Any other value triggers a workflow warning and defaults to never.
     required: false
     default: "never"
   show_passing_criteria:
@@ -91,7 +92,10 @@ outputs:
     description: The full review text posted as a PR comment.
     value: ${{ steps.review.outputs.review }}
   verdict:
-    description: The AI verdict — APPROVE, APPROVE WITH NOTES, or REQUEST CHANGES.
+    description: >
+      The AI verdict extracted from the review. Possible values: APPROVE,
+      APPROVE WITH NOTES, REQUEST CHANGES. Empty string if the verdict could
+      not be extracted (a workflow warning is emitted in that case).
     value: ${{ steps.verdict.outputs.verdict }}
 
 runs:
@@ -200,7 +204,16 @@ runs:
         REVIEW:  ${{ steps.review.outputs.review }}
         FAIL_ON: ${{ inputs.fail_on }}
       run: |
-        VERDICT=$(printf '%s' "$REVIEW" | awk 'NF{last=$0} END{print last}')
+        case "$FAIL_ON" in
+          never|request_changes) ;;
+          *) echo "::warning::fail_on has unrecognised value '${FAIL_ON}' — accepted values: never, request_changes — defaulting to never"
+             FAIL_ON="never" ;;
+        esac
+        VERDICT=$(printf '%s' "$REVIEW" | grep -oE 'APPROVE WITH NOTES|REQUEST CHANGES|APPROVE' | tail -1 || true)
+        if [ -z "$VERDICT" ]; then
+          echo "::error::Could not extract verdict from review output — expected one of: APPROVE, APPROVE WITH NOTES, REQUEST CHANGES"
+          exit 1
+        fi
         echo "verdict=${VERDICT}" >> "$GITHUB_OUTPUT"
         if [ "$FAIL_ON" = "request_changes" ] && [ "$VERDICT" = "REQUEST CHANGES" ]; then
           echo "::error::AI verdict: REQUEST CHANGES — failing workflow (fail_on=request_changes)"

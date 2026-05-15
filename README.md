@@ -156,6 +156,7 @@ The `@v0` floating tag was removed on 2026-05-14. See the [CHANGELOG](CHANGELOG.
 | `review_criteria` | | `""` | Additional review criteria, one per line |
 | `custom_rules` | | `""` | Custom sensitive data scan patterns, one per line |
 | `show_passing_criteria` | | `true` | Default: `true`. Whether to include passing criteria (no issues found) in the review output. Set to `false` to show only criteria with findings, keeping reviews concise on large PRs. Accepted values: `true`/`1`/`yes` or `false`/`0`/`no`. Any other value triggers a workflow warning and defaults to `true`. |
+| `fail_on` | | `never` | Default: `never`. When to fail the workflow based on the AI verdict. Set to `request_changes` to exit non-zero when the verdict is REQUEST CHANGES, blocking PR merges via required status checks. Accepted values: `never`, `request_changes`. Any other value triggers a workflow warning and defaults to `never`. |
 | `github_token` | ✓ | — | GitHub token for posting the review comment |
 
 ## Outputs
@@ -163,6 +164,7 @@ The `@v0` floating tag was removed on 2026-05-14. See the [CHANGELOG](CHANGELOG.
 | Output | Description |
 |---|---|
 | `review` | The full review text posted as a PR comment |
+| `verdict` | The AI verdict — one of `APPROVE`, `APPROVE WITH NOTES`, or `REQUEST CHANGES`. Empty string if the verdict could not be extracted (workflow error emitted). |
 
 ---
 
