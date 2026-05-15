@@ -40,13 +40,14 @@ PR_BODY   = os.environ.get("PR_BODY", "")
 PR_NUM         = os.environ.get("PR_NUMBER", "")
 EXTRA          = os.environ.get("REVIEW_CRITERIA", "")
 SYSTEM_CONTEXT = os.environ.get("SYSTEM_CONTEXT", "").strip()
-_show_raw = os.environ.get("SHOW_PASSING_CRITERIA", "true").strip().lower()
+_SHOW_PASSING_KEY = "SHOW_PASSING_CRITERIA"
+_show_raw = os.environ.get(_SHOW_PASSING_KEY, "true").strip().lower()
 if _show_raw in ("true", "1", "yes"):
     SHOW_PASSING = True
 elif _show_raw in ("false", "0", "no"):
     SHOW_PASSING = False
 else:
-    print(f"::warning::show_passing_criteria has unrecognised value '{_show_raw}' — accepted values: true/1/yes or false/0/no — defaulting to true")
+    print(f"::warning::{_SHOW_PASSING_KEY} has unrecognised value '{_show_raw}' — accepted values: true/1/yes or false/0/no — defaulting to true")
     SHOW_PASSING = True
 
 SUPPORTED_PROVIDERS = {"anthropic", "openai", "gemini", "github-models"}
