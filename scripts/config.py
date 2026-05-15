@@ -2,7 +2,7 @@
 ReviewSentry criteria configuration loader.
 
 Reads .github/reviewsentry.yml from REVIEWSENTRY_CONFIG env var (set by
-action.yml via the GitHub API). Parses a limited YAML subset — no external
+action.yml via GitHub API fetch). Parses a limited YAML subset — no external
 dependencies, stdlib only.
 
 Config file schema (.github/reviewsentry.yml):
